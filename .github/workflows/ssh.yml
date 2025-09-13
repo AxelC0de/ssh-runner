@@ -8,11 +8,28 @@ jobs:
     name: Start SSH Session
     runs-on: ubuntu-latest
     steps:
+      # Шаг 1: Подключение к Tailscale (остается как был)
       - name: Connect to Tailscale
         uses: tailscale/github-action@v2
         with:
           authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
-          ssh: true
+          # SSH от Tailscale нам больше не нужен, его отключаем
+          ssh: false
 
+      # Шаг 2: Установка и настройка стандартного OpenSSH сервера
+      - name: Setup SSH Server
+        run: |
+          # Устанавливаем OpenSSH-сервер
+          sudo apt-get update
+          sudo apt-get install -y openssh-server
+          # Добавляем наш публичный ключ в список разрешенных
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PUBLIC_KEY }}" > ~/.ssh/authorized_keys
+          chmod 700 ~/.ssh
+          chmod 600 ~/.ssh/authorized_keys
+          # Запускаем SSH сервер
+          sudo service ssh start
+
+      # Шаг 3: Держим сессию активной
       - name: Keep alive
-        run: echo "SSH session is active. Press Ctrl+C in your local terminal to disconnect." && tail -f /dev/null
+        run: echo "SSH session is active. Connect with your private key." && tail -f /dev/null
